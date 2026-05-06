@@ -3,7 +3,7 @@ import { getDatabase } from './database.js'
 import type { Project, ProjectNode, ProjectTree, ProjectStatus, NodeStatus, NodeType } from '../models/types.js'
 import { PROJECT_COLORS, MILESTONE_COLORS } from '../models/types.js'
 
-export function createProject(name: string, description?: string): Project {
+export function createProject(name: string, description?: string, developerId?: string): Project {
   const db = getDatabase()
   const id = randomUUID()
   const now = new Date().toISOString()
@@ -14,11 +14,11 @@ export function createProject(name: string, description?: string): Project {
   const color = PROJECT_COLORS[position % PROJECT_COLORS.length]
 
   const stmt = db.prepare(`
-    INSERT INTO projects (id, name, description, status, color, position, created_at, updated_at)
-    VALUES (?, ?, ?, 'seed', ?, ?, ?, ?)
+    INSERT INTO projects (id, name, description, status, color, position, developer_id, created_at, updated_at)
+    VALUES (?, ?, ?, 'seed', ?, ?, ?, ?, ?)
   `)
 
-  stmt.run(id, name, description || null, color, position, now, now)
+  stmt.run(id, name, description || null, color, position, developerId || null, now, now)
 
   return {
     id,
@@ -27,6 +27,7 @@ export function createProject(name: string, description?: string): Project {
     status: 'seed',
     color,
     position,
+    developerId,
     createdAt: now,
     updatedAt: now,
   }

@@ -2,6 +2,15 @@ export type ProjectStatus = 'seed' | 'rooting' | 'growing' | 'fruiting' | 'bloom
 export type NodeType = 'seed' | 'branch' | 'fruit' | 'flower'
 export type NodeStatus = 'pending' | 'active' | 'done' | 'blocked'
 
+export interface Developer {
+  id: string
+  name: string
+  avatar?: string
+  color: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface Project {
   id: string
   name: string
@@ -13,6 +22,7 @@ export interface Project {
   endDate?: string
   color: string
   position: number
+  developerId?: string
   createdAt: string
   updatedAt: string
 }

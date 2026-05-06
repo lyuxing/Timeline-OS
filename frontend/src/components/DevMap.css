@@ -7,16 +7,35 @@
 .dev-map-header {
   padding: 16px 24px;
   border-bottom: 1px solid #222;
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .dev-map-header h2 {
   font-size: 20px;
-  margin-bottom: 4px;
+  margin: 0;
 }
 
 .dev-map-header .hint {
   font-size: 13px;
   color: #666;
+  margin: 0;
+}
+
+.btn-new-project {
+  margin-left: auto;
+  padding: 8px 16px;
+  background: #f59e0b;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btn-new-project:hover {
+  background: #d97706;
 }
 
 .dev-map-canvas {
@@ -33,10 +52,9 @@
   position: relative;
 }
 
-.dev-node.root {
-  background: #2563eb;
-  border-color: #3b82f6;
+.dev-node.developer {
   min-width: 100px;
+  background: #1a2744;
 }
 
 .dev-node.project {
@@ -105,19 +123,104 @@
   color: #fff;
 }
 
-.milestone-badges {
-  margin-top: 8px;
+.add-developer-btn {
+  position: absolute;
+  bottom: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #22c55e;
+  color: #fff;
+  border: 2px solid #1e1e1e;
+  cursor: pointer;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  justify-content: center;
 }
 
-.milestone-badge {
-  font-size: 11px;
-  color: #f59e0b;
-  background: rgba(245, 158, 11, 0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
+.add-developer-btn:hover {
+  background: #16a34a;
+}
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #1e1e1e;
+  padding: 24px;
+  border-radius: 12px;
+  width: 320px;
+  border: 1px solid #333;
+}
+
+.modal h3 {
+  margin: 0 0 16px;
+  font-size: 18px;
+}
+
+.modal label {
+  display: block;
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 4px;
+  margin-top: 12px;
+}
+
+.modal input,
+.modal select {
+  width: 100%;
+  padding: 8px 12px;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+}
+
+.modal input:focus,
+.modal select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+
+.modal-actions button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.modal-actions button:first-child {
+  background: #333;
+  border: none;
+  color: #888;
+}
+
+.modal-actions button:last-child {
+  background: #3b82f6;
+  border: none;
+  color: #fff;
+}
+
+.modal-actions button:last-child:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* React Flow overrides */

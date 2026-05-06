@@ -1,5 +1,12 @@
 import { create } from 'zustand'
 
+interface Developer {
+  id: string
+  name: string
+  avatar?: string
+  color: string
+}
+
 interface Project {
   id: string
   name: string
@@ -9,19 +16,25 @@ interface Project {
   goal?: string
   start_date?: string
   end_date?: string
+  developer_id?: string
   nodes?: any[]
 }
 
 interface AppState {
+  developers: Developer[]
   projects: Project[]
   currentProject: Project | null
   selectedProjectId: string | null
   viewMode: 'map' | 'timeline' | 'timeline-edit' | 'weekly'
   loading: boolean
+  initialized: boolean
 
+  initialize: () => Promise<void>
+  fetchDevelopers: () => Promise<void>
+  createDeveloper: (name: string) => Promise<Developer | null>
   fetchProjects: () => Promise<void>
   fetchProjectTree: (id: string) => Promise<void>
-  createProject: (name: string, description?: string) => Promise<void>
+  createProject: (name: string, description?: string, developerId?: string) => Promise<Project | null>
   updateProject: (id: string, data: any) => Promise<void>
   deleteProject: (id: string) => Promise<void>
   selectProject: (id: string | null) => void
@@ -32,17 +45,66 @@ interface AppState {
 }
 
 export const useStore = create<AppState>((set, get) => ({
+  developers: [],
   projects: [],
   currentProject: null,
   selectedProjectId: null,
   viewMode: 'map',
   loading: false,
+  initialized: false,
+
+  initialize: async () => {
+    if (get().initialized) return
+    set({ loading: true })
+    await Promise.all([
+      get().fetchDevelopers(),
+      get().fetchProjects(),
+    ])
+    set({ initialized: true, loading: false })
+  },
+
+  fetchDevelopers: async () => {
+    try {
+      const res = await fetch('/api/developers')
+      const data = await res.json()
+      const developers = data.map((d: any) => ({
+        id: d.id,
+        name: d.name,
+        avatar: d.avatar,
+        color: d.color,
+      }))
+      set({ developers })
+    } catch (e) {
+      console.error('fetchDevelopers error:', e)
+    }
+  },
+
+  createDeveloper: async (name: string) => {
+    try {
+      const res = await fetch('/api/developers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      })
+      const data = await res.json()
+      const developer = {
+        id: data.id,
+        name: data.name,
+        avatar: data.avatar,
+        color: data.color,
+      }
+      set({ developers: [...get().developers, developer] })
+      return developer
+    } catch (e) {
+      console.error('createDeveloper error:', e)
+      return null
+    }
+  },
 
   fetchProjects: async () => {
     try {
       const res = await fetch('/api/projects')
       const data = await res.json()
-      // 转换字段名
       const projects = data.map((p: any) => ({
         id: p.id,
         name: p.name,
@@ -52,6 +114,7 @@ export const useStore = create<AppState>((set, get) => ({
         end_date: p.end_date,
         vision: p.vision,
         goal: p.goal,
+        developer_id: p.developer_id,
         nodes: [],
       }))
       set({ projects })
@@ -67,7 +130,6 @@ export const useStore = create<AppState>((set, get) => ({
       const data = await res.json()
       console.log('API response:', data)
 
-      // 转换字段名（后端返回蛇形，前端用驼峰）
       const nodes = (data.nodes || []).map((n: any) => ({
         id: n.id,
         title: n.title,
@@ -91,12 +153,12 @@ export const useStore = create<AppState>((set, get) => ({
         goal: data.goal,
         start_date: data.start_date,
         end_date: data.end_date,
+        developer_id: data.developer_id,
         nodes,
       }
 
       console.log('Processed project:', project)
 
-      // 同时更新 currentProject 和 projects 数组中的对应项目
       set({
         currentProject: project,
         selectedProjectId: id,
@@ -107,17 +169,27 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  createProject: async (name: string, description?: string) => {
+  createProject: async (name: string, description?: string, developerId?: string) => {
     try {
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description }),
+        body: JSON.stringify({ name, description, developerId }),
       })
       const data = await res.json()
-      set({ projects: [...get().projects, { id: data.id, name: data.name, status: data.status, color: data.color, nodes: [] }] })
+      const project = {
+        id: data.id,
+        name: data.name,
+        status: data.status,
+        color: data.color,
+        developer_id: data.developerId,
+        nodes: [],
+      }
+      set({ projects: [...get().projects, project] })
+      return project
     } catch (e) {
       console.error('createProject error:', e)
+      return null
     }
   },
 
@@ -168,7 +240,6 @@ export const useStore = create<AppState>((set, get) => ({
       })
       const newNode = await res.json()
 
-      // 后端返回驼峰，转换为蛇形以保持一致
       const node = {
         id: newNode.id,
         title: newNode.title,
@@ -182,7 +253,6 @@ export const useStore = create<AppState>((set, get) => ({
         parent_id: newNode.parentId,
       }
 
-      // 同时更新 currentProject 和 projects 数组
       if (get().currentProject?.id === projectId) {
         set({
           currentProject: { ...get().currentProject!, nodes: [...(get().currentProject!.nodes || []), node] },
@@ -201,7 +271,6 @@ export const useStore = create<AppState>((set, get) => ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })
-      // 同时更新 currentProject 和 projects 数组
       set({
         currentProject: get().currentProject ? {
           ...get().currentProject!,
@@ -225,7 +294,6 @@ export const useStore = create<AppState>((set, get) => ({
         return
       }
       console.log('Delete successful for node:', nodeId)
-      // 同时更新 currentProject 和 projects 数组
       set({
         currentProject: get().currentProject ? {
           ...get().currentProject!,

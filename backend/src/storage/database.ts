@@ -23,7 +23,7 @@ export function initDatabase() {
 
   db = new Database(dbPath)
   db.pragma('journal_mode = WAL')
-  db.pragma('foreign_keys = ON')  // 启用外键约束
+  db.pragma('foreign_keys = ON')
 
   createTables()
   runMigrations()
@@ -34,6 +34,15 @@ function createTables() {
   const db = getDatabase()
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS developers (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      avatar TEXT,
+      color TEXT DEFAULT '#3b82f6',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS projects (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -45,8 +54,10 @@ function createTables() {
       end_date TEXT,
       color TEXT DEFAULT '#3b82f6',
       position INTEGER DEFAULT 0,
+      developer_id TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (developer_id) REFERENCES developers(id) ON DELETE SET NULL
     );
 
     CREATE TABLE IF NOT EXISTS nodes (
@@ -73,36 +84,51 @@ function createTables() {
     CREATE INDEX IF NOT EXISTS idx_nodes_project ON nodes(project_id);
     CREATE INDEX IF NOT EXISTS idx_nodes_parent ON nodes(parent_id);
     CREATE INDEX IF NOT EXISTS idx_nodes_milestone ON nodes(is_milestone, milestone_date);
+    CREATE INDEX IF NOT EXISTS idx_projects_developer ON projects(developer_id);
   `)
 }
 
 function runMigrations() {
   const db = getDatabase()
 
-  // 添加 start_date 列到 nodes 表（如果不存在）
+  // 添加 developer_id 列到 projects 表
+  try {
+    db.exec(`ALTER TABLE projects ADD COLUMN developer_id TEXT`)
+  } catch (e) {}
+
+  // 添加 start_date 列到 nodes 表
   try {
     db.exec(`ALTER TABLE nodes ADD COLUMN start_date TEXT`)
-  } catch (e) {
-    // 列已存在，忽略错误
-  }
+  } catch (e) {}
 
-  // 添加 vision 列到 projects 表（如果不存在）
+  // 添加 vision 列到 projects 表
   try {
     db.exec(`ALTER TABLE projects ADD COLUMN vision TEXT`)
   } catch (e) {}
 
-  // 添加 goal 列到 projects 表（如果不存在）
+  // 添加 goal 列到 projects 表
   try {
     db.exec(`ALTER TABLE projects ADD COLUMN goal TEXT`)
   } catch (e) {}
 
-  // 添加 end_date 列到 projects 表（如果不存在）
+  // 添加 end_date 列到 projects 表
   try {
     db.exec(`ALTER TABLE projects ADD COLUMN end_date TEXT`)
   } catch (e) {}
 
-  // 添加 color 列到 nodes 表（如果不存在）
+  // 添加 color 列到 nodes 表
   try {
     db.exec(`ALTER TABLE nodes ADD COLUMN color TEXT`)
   } catch (e) {}
+
+  // 创建默认开发者（如果不存在）
+  const existingDevelopers = db.prepare('SELECT COUNT(*) as count FROM developers').get() as { count: number }
+  if (existingDevelopers.count === 0) {
+    const now = new Date().toISOString()
+    db.prepare(`
+      INSERT INTO developers (id, name, color, created_at, updated_at)
+      VALUES ('default-dev', '开发者', '#3b82f6', ?, ?)
+    `).run(now, now)
+    console.log('👤 Created default developer')
+  }
 }

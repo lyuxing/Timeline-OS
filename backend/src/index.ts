@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import { config } from 'dotenv'
 import projectRoutes from './routes/projects.js'
+import developerRoutes from './routes/developers.js'
 import { initDatabase } from './storage/database.js'
 
 config()
@@ -13,6 +14,7 @@ app.use(cors())
 app.use(express.json())
 
 app.use('/api/projects', projectRoutes)
+app.use('/api/developers', developerRoutes)
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })

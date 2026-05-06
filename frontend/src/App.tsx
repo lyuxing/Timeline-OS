@@ -1,20 +1,27 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useStore } from './store'
 import DevMap from './components/DevMap'
 import FishboneTimeline from './components/FishboneTimeline'
 import WeeklySummary from './components/WeeklySummary'
 import TimelineOverview from './components/TimelineOverview'
-import CreateProjectModal from './components/CreateProjectModal'
-import { Plus, Map, GitBranch, Calendar } from 'lucide-react'
+import { Calendar, GitBranch, Map } from 'lucide-react'
 import './App.css'
 
 export default function App() {
-  const { fetchProjects, selectedProjectId, viewMode, setViewMode } = useStore()
-  const [showCreateModal, setShowCreateModal] = useState(false)
+  const { initialize, initialized, loading, selectedProjectId, viewMode, setViewMode } = useStore()
 
   useEffect(() => {
-    fetchProjects()
-  }, [fetchProjects])
+    initialize()
+  }, [initialize])
+
+  if (loading && !initialized) {
+    return (
+      <div className="app-loading">
+        <div className="loading-spinner">🌳</div>
+        <p>加载中...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="app">
@@ -44,11 +51,6 @@ export default function App() {
             开发地图
           </button>
         </div>
-
-        <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
-          <Plus size={18} />
-          新建项目
-        </button>
       </header>
 
       <main className="app-main">
@@ -57,10 +59,6 @@ export default function App() {
         {viewMode === 'timeline-edit' && selectedProjectId && <FishboneTimeline />}
         {viewMode === 'map' && <DevMap />}
       </main>
-
-      {showCreateModal && (
-        <CreateProjectModal onClose={() => setShowCreateModal(false)} />
-      )}
     </div>
   )
 }

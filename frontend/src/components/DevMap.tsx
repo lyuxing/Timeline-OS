@@ -11,17 +11,52 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import { useStore } from '../store'
 import { STATUS_ICONS, ProjectStatus } from '../types'
-import { Trash2, Eye } from 'lucide-react'
-import { useMemo, useEffect } from 'react'
+import { Trash2, Eye, Plus } from 'lucide-react'
+import { useMemo, useEffect, useState } from 'react'
 import './DevMap.css'
 
-// 节点颜色
 const MILESTONE_COLORS = [
   '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4',
   '#f97316', '#14b8a6', '#6366f1', '#84cc16', '#e11d48'
 ]
 
-// 项目节点
+function DeveloperNode({ data }: { data: any }) {
+  const { createDeveloper } = useStore()
+
+  const handleAddDeveloper = async () => {
+    const name = prompt('输入开发者名称')
+    if (name) {
+      await createDeveloper(name)
+    }
+  }
+
+  return (
+    <div className="dev-node developer" style={{ borderColor: data.color }}>
+      <Handle type="source" position={Position.Right} style={{ background: data.color }} />
+      <div className="node-icon">{data.avatar || '👤'}</div>
+      <div className="node-label">{data.name}</div>
+      {data.isAddButton && (
+        <button
+          onClick={handleAddDeveloper}
+          className="add-developer-btn"
+          title="添加开发者"
+        >
+          <Plus size={14} />
+        </button>
+      )}
+      {data.isDefault && (
+        <button
+          onClick={handleAddDeveloper}
+          className="add-developer-btn"
+          title="添加团队成员"
+        >
+          <Plus size={14} />
+        </button>
+      )}
+    </div>
+  )
+}
+
 function ProjectNode({ data }: { data: any }) {
   const { selectProject, setViewMode, deleteProject, fetchProjectTree } = useStore()
 
@@ -29,7 +64,7 @@ function ProjectNode({ data }: { data: any }) {
     if (data.projectId) {
       selectProject(data.projectId)
       fetchProjectTree(data.projectId)
-      setViewMode('timeline')
+      setViewMode('timeline-edit')
     }
   }
 
@@ -44,7 +79,7 @@ function ProjectNode({ data }: { data: any }) {
     <div className="dev-node project">
       <Handle type="target" position={Position.Left} style={{ background: data.color }} />
       <div className="node-icon">{STATUS_ICONS[data.status as ProjectStatus]}</div>
-      <div className="node-label">{data.label}</div>
+      <div className="node-label">{data.name}</div>
       <div className="node-actions">
         <button onClick={handleView} title="查看时间线">
           <Eye size={14} />
@@ -58,7 +93,6 @@ function ProjectNode({ data }: { data: any }) {
   )
 }
 
-// 里程碑节点（树枝）
 function MilestoneMapNode({ data }: { data: any }) {
   return (
     <div className="dev-node milestone" style={{ borderColor: data.color }}>
@@ -70,7 +104,6 @@ function MilestoneMapNode({ data }: { data: any }) {
   )
 }
 
-// 花节点
 function FlowerMapNode({ data }: { data: any }) {
   return (
     <div className="dev-node flower" style={{ borderColor: data.color, background: 'rgba(236, 72, 153, 0.1)' }}>
@@ -81,7 +114,6 @@ function FlowerMapNode({ data }: { data: any }) {
   )
 }
 
-// 果节点
 function FruitMapNode({ data }: { data: any }) {
   return (
     <div className="dev-node fruit" style={{ borderColor: data.color, background: 'rgba(34, 197, 94, 0.1)' }}>
@@ -92,79 +124,94 @@ function FruitMapNode({ data }: { data: any }) {
   )
 }
 
-// 根节点
-function RootNode({ data }: { data: any }) {
-  return (
-    <div className="dev-node root">
-      <div className="node-icon">👤</div>
-      <div className="node-label">{data.label}</div>
-      <Handle type="source" position={Position.Right} style={{ background: '#3b82f6' }} />
-    </div>
-  )
-}
-
 const nodeTypes = {
-  root: RootNode,
+  developer: DeveloperNode,
   project: ProjectNode,
   milestone: MilestoneMapNode,
   flower: FlowerMapNode,
   fruit: FruitMapNode,
 }
 
-function buildDevMapNodes(projects: any[], projectTrees: Map<string, any>) {
+function buildDevMapNodes(developers: any[], projects: any[], projectTrees: Map<string, any>) {
   const nodes: Node[] = []
   const edges: any[] = []
 
-  // Root node (Developer)
-  nodes.push({
-    id: 'root',
-    type: 'root',
-    data: { label: '开发者' },
-    position: { x: 50, y: 300 },
+  // 开发者节点
+  const developerSpacing = 200
+  developers.forEach((dev, index) => {
+    nodes.push({
+      id: dev.id,
+      type: 'developer',
+      data: {
+        name: dev.name,
+        avatar: dev.avatar,
+        color: dev.color,
+        isDefault: dev.id === 'default-dev',
+      },
+      position: { x: 50, y: 100 + index * developerSpacing },
+    })
   })
 
-  // Project nodes and their children
-  const projectSpacing = 250
-  let projectY = 100
+  // 添加"添加开发者"按钮节点
+  nodes.push({
+    id: 'add-developer',
+    type: 'developer',
+    data: {
+      name: '添加',
+      avatar: '➕',
+      color: '#22c55e',
+      isAddButton: true,
+    },
+    position: { x: 50, y: 100 + developers.length * developerSpacing },
+  })
 
+  // 项目节点
   projects.forEach((project) => {
-    const projectNodeY = projectY
+    const developerId = project.developer_id || 'default-dev'
+    const developer = developers.find(d => d.id === developerId)
+    const devIndex = developers.findIndex(d => d.id === developerId)
+
+    if (!developer) return
+
+    // 计算项目位置
+    const projectsOfDev = projects.filter(p => (p.developer_id || 'default-dev') === developerId)
+    const projIndex = projectsOfDev.findIndex(p => p.id === project.id)
+
+    const projectX = 280 + projIndex * 180
+    const projectY = 100 + devIndex * developerSpacing
 
     nodes.push({
       id: project.id,
       type: 'project',
       data: {
-        label: project.name,
+        name: project.name,
         status: project.status,
         color: project.color,
         projectId: project.id,
       },
-      position: { x: 250, y: projectNodeY },
+      position: { x: projectX, y: projectY },
     })
 
     edges.push({
-      id: `root-${project.id}`,
-      source: 'root',
+      id: `${developerId}-${project.id}`,
+      source: developerId,
       target: project.id,
       style: { stroke: project.color, strokeWidth: 2 },
       markerEnd: MarkerType.ArrowClosed,
     })
 
-    // Get project tree data
+    // 里程碑和花果节点
     const tree = projectTrees.get(project.id)
     if (tree && tree.nodes) {
-      // Get milestones (branches)
       const milestones = tree.nodes
         .filter((n: any) => n.is_milestone === 1)
         .sort((a: any, b: any) => new Date(a.milestone_date).getTime() - new Date(b.milestone_date).getTime())
 
-      let milestoneY = projectNodeY - (milestones.length - 1) * 50
-
       milestones.forEach((milestone: any, mIndex: number) => {
         const color = milestone.color || MILESTONE_COLORS[mIndex % MILESTONE_COLORS.length]
         const milestoneId = `m-${milestone.id}`
-        const milestoneX = 500
-        const milestoneNodeY = milestoneY + mIndex * 100
+        const milestoneX = projectX + 200
+        const milestoneY = projectY - 30 + mIndex * 60
 
         nodes.push({
           id: milestoneId,
@@ -173,7 +220,7 @@ function buildDevMapNodes(projects: any[], projectTrees: Map<string, any>) {
             label: milestone.milestone_name || milestone.title,
             color,
           },
-          position: { x: milestoneX, y: milestoneNodeY },
+          position: { x: milestoneX, y: milestoneY },
         })
 
         edges.push({
@@ -184,14 +231,11 @@ function buildDevMapNodes(projects: any[], projectTrees: Map<string, any>) {
           markerEnd: MarkerType.ArrowClosed,
         })
 
-        // Get children (flowers and fruits) of this milestone
         const children = tree.nodes.filter((n: any) => n.parent_id === milestone.id)
-
-        let childY = milestoneNodeY - (children.length - 1) * 40
         children.forEach((child: any, cIndex: number) => {
           const childId = `c-${child.id}`
-          const childX = 720
-          const childNodeY = childY + cIndex * 80
+          const childX = milestoneX + 180
+          const childY = milestoneY - 20 + cIndex * 50
 
           nodes.push({
             id: childId,
@@ -200,7 +244,7 @@ function buildDevMapNodes(projects: any[], projectTrees: Map<string, any>) {
               label: child.title,
               color,
             },
-            position: { x: childX, y: childNodeY },
+            position: { x: childX, y: childY },
           })
 
           edges.push({
@@ -208,32 +252,38 @@ function buildDevMapNodes(projects: any[], projectTrees: Map<string, any>) {
             source: milestoneId,
             target: childId,
             type: 'smoothstep',
-            style: { stroke: color, strokeWidth: 2 },
+            style: { stroke: color, strokeWidth: 1.5 },
             markerEnd: MarkerType.ArrowClosed,
           })
         })
       })
     }
-
-    projectY += projectSpacing + (tree?.nodes?.filter((n: any) => n.is_milestone === 1).length || 0) * 50
   })
 
   return { nodes, edges }
 }
 
 export default function DevMap() {
-  const { projects, fetchProjectTree } = useStore()
+  const { developers, projects, fetchProjects, fetchDevelopers, fetchProjectTree, createProject } = useStore()
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [newProjectName, setNewProjectName] = useState('')
+  const [selectedDeveloperId, setSelectedDeveloperId] = useState('')
 
-  // Fetch all project trees on mount
   useEffect(() => {
-    projects.forEach(p => {
-      if (!p.nodes || p.nodes.length === 0) {
-        fetchProjectTree(p.id)
-      }
-    })
+    fetchProjects()
+    fetchDevelopers()
+  }, [fetchProjects, fetchDevelopers])
+
+  useEffect(() => {
+    if (projects.length > 0) {
+      projects.forEach(p => {
+        if (!p.nodes || p.nodes.length === 0) {
+          fetchProjectTree(p.id)
+        }
+      })
+    }
   }, [projects, fetchProjectTree])
 
-  // Create a map to store project trees
   const projectTrees = useMemo(() => {
     const map = new Map<string, any>()
     projects.forEach(p => {
@@ -245,17 +295,36 @@ export default function DevMap() {
   }, [projects])
 
   const { nodes: initialNodes, edges: initialEdges } = useMemo(
-    () => buildDevMapNodes(projects, projectTrees),
-    [projects, projectTrees]
+    () => buildDevMapNodes(developers, projects, projectTrees),
+    [developers, projects, projectTrees]
   )
   const [nodes, , onNodesChange] = useNodesState(initialNodes)
   const [edges, , onEdgesChange] = useEdgesState(initialEdges)
+
+  const handleCreateProject = async () => {
+    if (!newProjectName.trim()) return
+    await createProject(newProjectName.trim(), '', selectedDeveloperId || undefined)
+    setNewProjectName('')
+    setSelectedDeveloperId('')
+    setShowCreateModal(false)
+  }
+
+  const handleNodeDoubleClick = (_: React.MouseEvent, node: Node) => {
+    if (node.type === 'developer' && node.id !== 'add-developer') {
+      // 双击开发者节点可以创建项目
+      setSelectedDeveloperId(node.id)
+      setShowCreateModal(true)
+    }
+  }
 
   return (
     <div className="dev-map">
       <div className="dev-map-header">
         <h2>🗺️ 开发地图</h2>
-        <p className="hint">点击项目查看时间线，拖拽调整布局</p>
+        <p className="hint">双击开发者创建项目，点击项目查看时间线</p>
+        <button onClick={() => setShowCreateModal(true)} className="btn-new-project">
+          + 新建项目
+        </button>
       </div>
 
       <div className="dev-map-canvas">
@@ -265,6 +334,7 @@ export default function DevMap() {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           nodeTypes={nodeTypes}
+          onNodeDoubleClick={handleNodeDoubleClick}
           fitView
           minZoom={0.3}
           maxZoom={1.5}
@@ -274,6 +344,38 @@ export default function DevMap() {
           <Controls />
         </ReactFlow>
       </div>
+
+      {/* 创建项目弹窗 */}
+      {showCreateModal && (
+        <div onClick={() => setShowCreateModal(false)} className="modal-overlay">
+          <div onClick={e => e.stopPropagation()} className="modal">
+            <h3>新建项目</h3>
+            <label>项目名称</label>
+            <input
+              value={newProjectName}
+              onChange={e => setNewProjectName(e.target.value)}
+              placeholder="输入项目名称"
+              autoFocus
+            />
+            <label>关联开发者</label>
+            <select
+              value={selectedDeveloperId}
+              onChange={e => setSelectedDeveloperId(e.target.value)}
+            >
+              <option value="">选择开发者</option>
+              {developers.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+            <div className="modal-actions">
+              <button onClick={() => setShowCreateModal(false)}>取消</button>
+              <button onClick={handleCreateProject} disabled={!newProjectName.trim()}>
+                创建
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

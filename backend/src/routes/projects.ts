@@ -26,12 +26,12 @@ router.get('/', (_req: Request, res: Response) => {
 })
 
 router.post('/', (req: Request, res: Response) => {
-  const { name, description } = req.body
+  const { name, description, developerId } = req.body
   if (!name) {
     res.status(400).json({ error: 'name is required' })
     return
   }
-  const project = createProject(name, description)
+  const project = createProject(name, description, developerId)
   res.status(201).json(project)
 })
 
