@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:3001/health)",
+      "Bash(curl -s http://localhost:3001/api/projects)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(npm list *)",
+      "Bash(curl *)",
+      "Bash(xargs kill *)",
+      "Bash(npx vite *)",
+      "Bash(python3 -m json.tool)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('Nodes count:', len\\(d['nodes']\\)\\); print\\('First node id:', d['nodes'][0]['id'] if d['nodes'] else 'none'\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('Nodes after delete:', len\\(d['nodes']\\)\\)\")",
+      "Bash(python3 *)",
+      "Bash(pkill -f \"vite\")"
+    ]
+  }
+}

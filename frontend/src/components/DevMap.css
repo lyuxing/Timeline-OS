@@ -1,0 +1,156 @@
+.dev-map {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.dev-map-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid #222;
+}
+
+.dev-map-header h2 {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.dev-map-header .hint {
+  font-size: 13px;
+  color: #666;
+}
+
+.dev-map-canvas {
+  flex: 1;
+  background: #111;
+}
+
+.dev-node {
+  background: #1e1e1e;
+  border: 2px solid #444;
+  border-radius: 12px;
+  padding: 12px 16px;
+  min-width: 120px;
+  position: relative;
+}
+
+.dev-node.root {
+  background: #2563eb;
+  border-color: #3b82f6;
+  min-width: 100px;
+}
+
+.dev-node.project {
+  min-width: 140px;
+}
+
+.dev-node.milestone {
+  min-width: 100px;
+  background: #1a1a1a;
+}
+
+.dev-node.flower {
+  min-width: 90px;
+  border-color: #ec4899;
+}
+
+.dev-node.fruit {
+  min-width: 90px;
+  border-color: #22c55e;
+}
+
+.dev-node:hover {
+  border-color: #666;
+}
+
+.node-icon {
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.node-label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.node-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.dev-node:hover .node-actions {
+  opacity: 1;
+}
+
+.node-actions button {
+  background: #333;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.node-actions button:hover {
+  background: #444;
+  color: #e5e5e5;
+}
+
+.node-actions button.delete:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
+.milestone-badges {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.milestone-badge {
+  font-size: 11px;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* React Flow overrides */
+.react-flow__node {
+  cursor: pointer;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+.react-flow__edge {
+  stroke: #666;
+  stroke-width: 2;
+}
+
+.react-flow__controls {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 6px;
+}
+
+.react-flow__controls-button {
+  background: #1e1e1e;
+  border-bottom: 1px solid #333;
+  color: #888;
+}
+
+.react-flow__controls-button:hover {
+  background: #222;
+  color: #e5e5e5;
+}
+
+.react-flow__attribution {
+  display: none;
+}

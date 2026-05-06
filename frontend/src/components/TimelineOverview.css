@@ -1,0 +1,169 @@
+.timeline-overview {
+  padding: 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.timeline-overview-header {
+  margin-bottom: 24px;
+}
+
+.timeline-overview-header h1 {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.timeline-overview-header p {
+  color: #666;
+  font-size: 14px;
+}
+
+.timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.timeline-card {
+  background: #fff;
+  border-radius: 12px;
+  border-left: 4px solid #3b82f6;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
+  overflow: hidden;
+}
+
+.timeline-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+.timeline-card-header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.project-icon {
+  font-size: 24px;
+}
+
+.project-name {
+  flex: 1;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.project-dates {
+  font-size: 13px;
+  color: #666;
+}
+
+.chevron {
+  color: #ccc;
+}
+
+.timeline-card-body {
+  padding: 16px 20px;
+}
+
+/* Mini timeline */
+.mini-timeline {
+  margin-bottom: 12px;
+}
+
+.mini-timeline-empty {
+  color: #888;
+  font-size: 13px;
+  padding: 20px 0;
+  text-align: center;
+}
+
+.mini-timeline-bar {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  margin: 0 20px;
+}
+
+.mini-start,
+.mini-end {
+  position: absolute;
+  top: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+}
+
+.mini-start {
+  left: -20px;
+}
+
+.mini-end {
+  right: -20px;
+}
+
+.mini-milestone {
+  position: absolute;
+  top: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  transform: translateX(-50%);
+}
+
+.mini-milestone-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.mini-milestone-name {
+  font-size: 11px;
+  color: #666;
+  background: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.mini-milestone-more {
+  font-size: 11px;
+  color: #888;
+}
+
+/* Project stats */
+.project-stats {
+  display: flex;
+  gap: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.project-stats .stat {
+  font-size: 12px;
+  color: #666;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #888;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}

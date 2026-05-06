@@ -1,0 +1,120 @@
+.weekly-summary {
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.weekly-summary-header {
+  margin-bottom: 24px;
+}
+
+.weekly-summary-header h1 {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.weekly-summary-header .date {
+  color: #666;
+  font-size: 14px;
+}
+
+.project-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.project-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+.project-card-header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.project-card-header .project-name {
+  flex: 1;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.days-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.days-badge.urgent {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.days-badge.soon {
+  background: #fffbeb;
+  color: #f59e0b;
+}
+
+.days-badge.normal {
+  background: #f0fdf4;
+  color: #22c55e;
+}
+
+.next-milestone {
+  padding: 12px 20px;
+  background: #fafafa;
+}
+
+.milestone-list {
+  padding: 12px 20px;
+}
+
+.milestone-list-title {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+.milestone-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.milestone-item .date {
+  color: #888;
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.stats-bar {
+  margin-top: 32px;
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 12px;
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-item .number {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.stat-item .label {
+  font-size: 12px;
+  color: #888;
+}
