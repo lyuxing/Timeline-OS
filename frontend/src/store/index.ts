@@ -1,10 +1,26 @@
 import { create } from 'zustand'
 
+interface Team {
+  id: string
+  name: string
+}
+
+interface User {
+  id: string
+  email: string
+  name: string
+  role: 'admin' | 'member'
+  teamId?: string
+  team?: Team
+}
+
 interface Developer {
   id: string
   name: string
   avatar?: string
   color: string
+  userId?: string
+  teamId?: string
 }
 
 interface Project {
@@ -17,10 +33,18 @@ interface Project {
   start_date?: string
   end_date?: string
   developer_id?: string
+  team_id?: string
   nodes?: any[]
 }
 
 interface AppState {
+  // Auth state
+  user: User | null
+  token: string | null
+  authLoading: boolean
+  authError: string | null
+
+  // App state
   developers: Developer[]
   projects: Project[]
   currentProject: Project | null
@@ -29,6 +53,16 @@ interface AppState {
   loading: boolean
   initialized: boolean
 
+  // Auth actions
+  login: (email: string, password: string) => Promise<boolean>
+  register: (email: string, password: string, name: string) => Promise<boolean>
+  registerWithInvite: (email: string, password: string, name: string, inviteToken: string) => Promise<boolean>
+  acceptTeamInvite: (inviteToken: string) => Promise<boolean>
+  createTeam: (name: string) => Promise<boolean>
+  logout: () => void
+  checkAuth: () => Promise<void>
+
+  // App actions
   initialize: () => Promise<void>
   fetchDevelopers: () => Promise<void>
   createDeveloper: (name: string) => Promise<Developer | null>
@@ -45,6 +79,13 @@ interface AppState {
 }
 
 export const useStore = create<AppState>((set, get) => ({
+  // Auth state
+  user: null,
+  token: localStorage.getItem('token'),
+  authLoading: false,
+  authError: null,
+
+  // App state
   developers: [],
   projects: [],
   currentProject: null,
@@ -53,9 +94,188 @@ export const useStore = create<AppState>((set, get) => ({
   loading: false,
   initialized: false,
 
+  // Auth actions
+  login: async (username: string, password: string) => {
+    set({ authLoading: true, authError: null })
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        set({ authError: data.error || 'Login failed', authLoading: false })
+        return false
+      }
+      const data = await res.json()
+      localStorage.setItem('token', data.token)
+      set({
+        user: { ...data.user, team: data.team },
+        token: data.token,
+        authLoading: false,
+        authError: null
+      })
+      return true
+    } catch (e) {
+      set({ authError: 'Login failed', authLoading: false })
+      return false
+    }
+  },
+
+  register: async (email: string, password: string, name: string) => {
+    set({ authLoading: true, authError: null })
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        set({ authError: data.error || 'Registration failed', authLoading: false })
+        return false
+      }
+      const data = await res.json()
+      localStorage.setItem('token', data.token)
+      set({ user: data.user, token: data.token, authLoading: false, authError: null })
+      return true
+    } catch (e) {
+      set({ authError: 'Registration failed', authLoading: false })
+      return false
+    }
+  },
+
+  registerWithInvite: async (email: string, password: string, name: string, inviteToken: string) => {
+    set({ authLoading: true, authError: null })
+    try {
+      const res = await fetch('/api/auth/register-with-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name, inviteToken }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        set({ authError: data.error || 'Registration failed', authLoading: false })
+        return false
+      }
+      const data = await res.json()
+      localStorage.setItem('token', data.token)
+      set({
+        user: { ...data.user, team: data.team },
+        token: data.token,
+        authLoading: false,
+        authError: null
+      })
+      return true
+    } catch (e) {
+      set({ authError: 'Registration failed', authLoading: false })
+      return false
+    }
+  },
+
+  acceptTeamInvite: async (inviteToken: string) => {
+    const token = get().token
+    if (!token) return false
+
+    set({ authLoading: true, authError: null })
+    try {
+      const res = await fetch('/api/auth/accept-team-invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ token: inviteToken }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        set({ authError: data.error || 'Failed to accept invitation', authLoading: false })
+        return false
+      }
+      const data = await res.json()
+      localStorage.setItem('token', data.token)
+      set({
+        user: { ...data.user, team: data.team },
+        token: data.token,
+        authLoading: false,
+        authError: null
+      })
+      // Refresh data after joining team
+      await get().fetchDevelopers()
+      await get().fetchProjects()
+      return true
+    } catch (e) {
+      set({ authError: 'Failed to accept invitation', authLoading: false })
+      return false
+    }
+  },
+
+  createTeam: async (name: string) => {
+    const token = get().token
+    if (!token) return false
+
+    set({ authLoading: true, authError: null })
+    try {
+      const res = await fetch('/api/auth/teams', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        set({ authError: data.error || 'Failed to create team', authLoading: false })
+        return false
+      }
+      const data = await res.json()
+      set(state => ({
+        user: state.user ? { ...state.user, teamId: data.id, team: { id: data.id, name: data.name } } : null,
+        authLoading: false,
+      }))
+      return true
+    } catch (e) {
+      set({ authError: 'Failed to create team', authLoading: false })
+      return false
+    }
+  },
+
+  logout: () => {
+    localStorage.removeItem('token')
+    set({ user: null, token: null, developers: [], projects: [], currentProject: null, initialized: false })
+  },
+
+  checkAuth: async () => {
+    const token = get().token
+    if (!token) return
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        set({ user: { ...data, team: data.team } })
+      } else {
+        localStorage.removeItem('token')
+        set({ user: null, token: null })
+      }
+    } catch (e) {
+      localStorage.removeItem('token')
+      set({ user: null, token: null })
+    }
+  },
+
+  // App actions
   initialize: async () => {
     if (get().initialized) return
     set({ loading: true })
+    await get().checkAuth()
+    if (!get().token) {
+      set({ initialized: true, loading: false })
+      return
+    }
     await Promise.all([
       get().fetchDevelopers(),
       get().fetchProjects(),
@@ -64,14 +284,19 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   fetchDevelopers: async () => {
+    const token = get().token
+    if (!token) return
     try {
-      const res = await fetch('/api/developers')
+      const res = await fetch('/api/developers', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       const data = await res.json()
       const developers = data.map((d: any) => ({
         id: d.id,
         name: d.name,
         avatar: d.avatar,
         color: d.color,
+        userId: d.userId,
       }))
       set({ developers })
     } catch (e) {
@@ -80,18 +305,23 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   createDeveloper: async (name: string) => {
+    const token = get().token
+    if (!token) return null
     try {
       const res = await fetch('/api/developers', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ name }),
       })
       const data = await res.json()
+      console.log('createDeveloper response:', data)
       const developer = {
         id: data.id,
         name: data.name,
         avatar: data.avatar,
         color: data.color,
+        userId: data.userId || data.user_id,
+        teamId: data.teamId || data.team_id,
       }
       set({ developers: [...get().developers, developer] })
       return developer
@@ -102,8 +332,12 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   fetchProjects: async () => {
+    const token = get().token
+    if (!token) return
     try {
-      const res = await fetch('/api/projects')
+      const res = await fetch('/api/projects', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       const data = await res.json()
       const projects = data.map((p: any) => ({
         id: p.id,
@@ -114,7 +348,7 @@ export const useStore = create<AppState>((set, get) => ({
         end_date: p.end_date,
         vision: p.vision,
         goal: p.goal,
-        developer_id: p.developer_id,
+        developer_id: p.developer_id || p.developerId,
         nodes: [],
       }))
       set({ projects })
@@ -124,9 +358,13 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   fetchProjectTree: async (id: string) => {
+    const token = get().token
+    if (!token) return
     try {
       console.log('Fetching project tree for:', id)
-      const res = await fetch(`/api/projects/${id}/tree`)
+      const res = await fetch(`/api/projects/${id}/tree`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       const data = await res.json()
       console.log('API response:', data)
 
@@ -136,12 +374,12 @@ export const useStore = create<AppState>((set, get) => ({
         description: n.description,
         status: n.status,
         type: n.type,
-        is_milestone: n.is_milestone,
-        milestone_date: n.milestone_date,
-        milestone_name: n.milestone_name,
-        start_date: n.start_date,
+        is_milestone: n.isMilestone === true || n.is_milestone === 1 ? 1 : 0,
+        milestone_date: n.milestoneDate || n.milestone_date,
+        milestone_name: n.milestoneName || n.milestone_name,
+        start_date: n.startDate || n.start_date,
         color: n.color,
-        parent_id: n.parent_id,
+        parent_id: n.parentId || n.parent_id,
       }))
 
       const project = {
@@ -151,9 +389,9 @@ export const useStore = create<AppState>((set, get) => ({
         color: data.color,
         vision: data.vision,
         goal: data.goal,
-        start_date: data.start_date,
-        end_date: data.end_date,
-        developer_id: data.developer_id,
+        start_date: data.start_date || data.startDate,
+        end_date: data.end_date || data.endDate,
+        developer_id: data.developer_id || data.developerId,
         nodes,
       }
 
@@ -170,10 +408,12 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   createProject: async (name: string, description?: string, developerId?: string) => {
+    const token = get().token
+    if (!token) return null
     try {
       const res = await fetch('/api/projects', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ name, description, developerId }),
       })
       const data = await res.json()
@@ -182,7 +422,7 @@ export const useStore = create<AppState>((set, get) => ({
         name: data.name,
         status: data.status,
         color: data.color,
-        developer_id: data.developerId,
+        developer_id: data.developerId || data.developer_id,
         nodes: [],
       }
       set({ projects: [...get().projects, project] })
@@ -194,10 +434,12 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   updateProject: async (id: string, data: any) => {
+    const token = get().token
+    if (!token) return
     try {
       const res = await fetch(`/api/projects/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(data),
       })
       const updated = await res.json()
@@ -210,8 +452,13 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   deleteProject: async (id: string) => {
+    const token = get().token
+    if (!token) return
     try {
-      await fetch(`/api/projects/${id}`, { method: 'DELETE' })
+      await fetch(`/api/projects/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
       set({
         projects: get().projects.filter(p => p.id !== id),
         currentProject: get().currentProject?.id === id ? null : get().currentProject,
@@ -232,31 +479,38 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   createNode: async (projectId: string, data: any) => {
+    const token = get().token
+    if (!token) return
     try {
       const res = await fetch(`/api/projects/${projectId}/nodes`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(data),
       })
       const newNode = await res.json()
+      console.log('createNode response:', newNode)
 
       const node = {
         id: newNode.id,
         title: newNode.title,
         status: newNode.status,
         type: newNode.type,
-        is_milestone: newNode.isMilestone,
-        milestone_date: newNode.milestoneDate,
-        milestone_name: newNode.milestoneName,
-        start_date: newNode.startDate,
+        is_milestone: newNode.isMilestone === true || newNode.is_milestone === 1 ? 1 : 0,
+        milestone_date: newNode.milestoneDate || newNode.milestone_date,
+        milestone_name: newNode.milestoneName || newNode.milestone_name,
+        start_date: newNode.startDate || newNode.start_date,
         color: newNode.color,
-        parent_id: newNode.parentId,
+        parent_id: newNode.parentId || newNode.parent_id,
+        description: newNode.description,
       }
 
-      if (get().currentProject?.id === projectId) {
+      // 更新当前项目
+      const currentProject = get().currentProject
+      if (currentProject?.id === projectId) {
+        const updatedNodes = [...(currentProject.nodes || []), node]
         set({
-          currentProject: { ...get().currentProject!, nodes: [...(get().currentProject!.nodes || []), node] },
-          projects: get().projects.map(p => p.id === projectId ? { ...p, nodes: [...(p.nodes || []), node] } : p),
+          currentProject: { ...currentProject, nodes: updatedNodes },
+          projects: get().projects.map(p => p.id === projectId ? { ...p, nodes: updatedNodes } : p),
         })
       }
     } catch (e) {
@@ -265,20 +519,38 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   updateNode: async (nodeId: string, data: any) => {
+    const token = get().token
+    if (!token) return
     try {
-      await fetch(`/api/projects/nodes/${nodeId}`, {
+      const res = await fetch(`/api/projects/nodes/${nodeId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(data),
       })
+      const updatedNode = await res.json()
+      console.log('updateNode response:', updatedNode)
+
+      // 转换字段名
+      const mappedData = {
+        title: updatedNode.title,
+        description: updatedNode.description,
+        status: updatedNode.status,
+        type: updatedNode.type,
+        is_milestone: updatedNode.isMilestone === true || updatedNode.is_milestone === 1 ? 1 : 0,
+        milestone_date: updatedNode.milestoneDate || updatedNode.milestone_date,
+        milestone_name: updatedNode.milestoneName || updatedNode.milestone_name,
+        start_date: updatedNode.startDate || updatedNode.start_date,
+        color: updatedNode.color,
+      }
+
       set({
         currentProject: get().currentProject ? {
           ...get().currentProject!,
-          nodes: get().currentProject!.nodes?.map(n => n.id === nodeId ? { ...n, ...data } : n) || [],
+          nodes: get().currentProject!.nodes?.map(n => n.id === nodeId ? { ...n, ...mappedData } : n) || [],
         } : null,
         projects: get().projects.map(p => ({
           ...p,
-          nodes: p.nodes?.map(n => n.id === nodeId ? { ...n, ...data } : n) || [],
+          nodes: p.nodes?.map(n => n.id === nodeId ? { ...n, ...mappedData } : n) || [],
         })),
       })
     } catch (e) {
@@ -287,8 +559,13 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   deleteNode: async (nodeId: string) => {
+    const token = get().token
+    if (!token) return
     try {
-      const res = await fetch(`/api/projects/nodes/${nodeId}`, { method: 'DELETE' })
+      const res = await fetch(`/api/projects/nodes/${nodeId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
       if (!res.ok && res.status !== 204) {
         console.error('Delete failed:', res.status)
         return

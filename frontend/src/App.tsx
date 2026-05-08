@@ -1,18 +1,42 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from './store'
 import DevMap from './components/DevMap'
 import FishboneTimeline from './components/FishboneTimeline'
 import WeeklySummary from './components/WeeklySummary'
 import TimelineOverview from './components/TimelineOverview'
+import LoginPage from './components/LoginPage'
+import RegisterPage from './components/RegisterPage'
+import UserMenu from './components/UserMenu'
+import InviteModal from './components/InviteModal'
+import CreateTeamModal from './components/CreateTeamModal'
 import { Calendar, GitBranch, Map } from 'lucide-react'
 import './App.css'
 
 export default function App() {
-  const { initialize, initialized, loading, selectedProjectId, viewMode, setViewMode } = useStore()
+  const { initialize, initialized, loading, user, selectedProjectId, viewMode, setViewMode } = useStore()
+  const [authPage, setAuthPage] = useState<'login' | 'register'>('login')
+  const [showInvite, setShowInvite] = useState(false)
+  const [showCreateTeam, setShowCreateTeam] = useState(false)
+
+  // Check for invite token in URL
+  const inviteToken = new URLSearchParams(window.location.search).get('invite')
 
   useEffect(() => {
     initialize()
   }, [initialize])
+
+  // Show auth page if not logged in
+  if (!user && !loading) {
+    if (authPage === 'login') {
+      return <LoginPage onSwitchToRegister={() => setAuthPage('register')} />
+    }
+    return (
+      <RegisterPage
+        onSwitchToLogin={() => setAuthPage('login')}
+        inviteToken={inviteToken || undefined}
+      />
+    )
+  }
 
   if (loading && !initialized) {
     return (
@@ -51,6 +75,11 @@ export default function App() {
             开发地图
           </button>
         </div>
+
+        <UserMenu
+          onInvite={() => setShowInvite(true)}
+          onCreateTeam={() => setShowCreateTeam(true)}
+        />
       </header>
 
       <main className="app-main">
@@ -59,6 +88,9 @@ export default function App() {
         {viewMode === 'timeline-edit' && selectedProjectId && <FishboneTimeline />}
         {viewMode === 'map' && <DevMap />}
       </main>
+
+      {showInvite && <InviteModal onClose={() => setShowInvite(false)} />}
+      {showCreateTeam && <CreateTeamModal onClose={() => setShowCreateTeam(false)} />}
     </div>
   )
 }

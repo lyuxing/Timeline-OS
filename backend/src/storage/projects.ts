@@ -3,22 +3,27 @@ import { getDatabase } from './database.js'
 import type { Project, ProjectNode, ProjectTree, ProjectStatus, NodeStatus, NodeType } from '../models/types.js'
 import { PROJECT_COLORS, MILESTONE_COLORS } from '../models/types.js'
 
-export function createProject(name: string, description?: string, developerId?: string): Project {
+export function createProject(name: string, description?: string, developerId?: string, teamId?: string): Project {
   const db = getDatabase()
   const id = randomUUID()
   const now = new Date().toISOString()
 
-  // Get next position
-  const maxPos = db.prepare('SELECT COALESCE(MAX(position), -1) as max FROM projects').get() as { max: number }
+  // Get next position for this team
+  let maxPos: { max: number }
+  if (teamId) {
+    maxPos = db.prepare('SELECT COALESCE(MAX(position), -1) as max FROM projects WHERE team_id = ?').get(teamId) as { max: number }
+  } else {
+    maxPos = db.prepare('SELECT COALESCE(MAX(position), -1) as max FROM projects').get() as { max: number }
+  }
   const position = maxPos.max + 1
   const color = PROJECT_COLORS[position % PROJECT_COLORS.length]
 
   const stmt = db.prepare(`
-    INSERT INTO projects (id, name, description, status, color, position, developer_id, created_at, updated_at)
-    VALUES (?, ?, ?, 'seed', ?, ?, ?, ?, ?)
+    INSERT INTO projects (id, name, description, status, color, position, developer_id, team_id, created_at, updated_at)
+    VALUES (?, ?, ?, 'seed', ?, ?, ?, ?, ?, ?)
   `)
 
-  stmt.run(id, name, description || null, color, position, developerId || null, now, now)
+  stmt.run(id, name, description || null, color, position, developerId || null, teamId || null, now, now)
 
   return {
     id,
@@ -28,6 +33,7 @@ export function createProject(name: string, description?: string, developerId?: 
     color,
     position,
     developerId,
+    teamId,
     createdAt: now,
     updatedAt: now,
   }
@@ -35,8 +41,9 @@ export function createProject(name: string, description?: string, developerId?: 
 
 export function getProject(id: string): Project | null {
   const db = getDatabase()
-  const row = db.prepare('SELECT * FROM projects WHERE id = ?').get(id)
-  return row as Project | null
+  const row = db.prepare('SELECT * FROM projects WHERE id = ?').get(id) as any
+  if (!row) return null
+  return mapRowToProject(row)
 }
 
 export function getProjectTree(id: string): ProjectTree | null {
@@ -44,14 +51,23 @@ export function getProjectTree(id: string): ProjectTree | null {
   const project = getProject(id)
   if (!project) return null
 
-  const nodes = db.prepare('SELECT * FROM nodes WHERE project_id = ? ORDER BY created_at').all(id) as ProjectNode[]
+  const rows = db.prepare('SELECT * FROM nodes WHERE project_id = ? ORDER BY created_at').all(id) as any[]
+  const nodes = rows.map(mapRowToNode)
 
   return { ...project, nodes }
 }
 
-export function listProjects(): Project[] {
+export function listProjects(teamId?: string): Project[] {
   const db = getDatabase()
-  return db.prepare('SELECT * FROM projects ORDER BY position ASC').all() as Project[]
+  let rows: any[]
+  if (teamId) {
+    // 有团队：只看团队的项目
+    rows = db.prepare('SELECT * FROM projects WHERE team_id = ? ORDER BY position ASC').all(teamId)
+  } else {
+    // 无团队：只看没有团队归属的项目
+    rows = db.prepare('SELECT * FROM projects WHERE team_id IS NULL ORDER BY position ASC').all()
+  }
+  return rows.map(mapRowToProject)
 }
 
 export function updateProject(id: string, updates: {
@@ -189,7 +205,9 @@ export function createNode(
 
 export function getNode(id: string): ProjectNode | null {
   const db = getDatabase()
-  return db.prepare('SELECT * FROM nodes WHERE id = ?').get(id) as ProjectNode | null
+  const row = db.prepare('SELECT * FROM nodes WHERE id = ?').get(id) as any
+  if (!row) return null
+  return mapRowToNode(row)
 }
 
 export function updateNode(id: string, updates: {
@@ -269,5 +287,48 @@ export function deleteNode(id: string): boolean {
 
 export function getProjectMilestones(projectId: string): ProjectNode[] {
   const db = getDatabase()
-  return db.prepare('SELECT * FROM nodes WHERE project_id = ? AND is_milestone = 1 ORDER BY milestone_date').all(projectId) as ProjectNode[]
+  const rows = db.prepare('SELECT * FROM nodes WHERE project_id = ? AND is_milestone = 1 ORDER BY milestone_date').all(projectId) as any[]
+  return rows.map(mapRowToNode)
+}
+
+// Helper functions for mapping rows
+function mapRowToProject(row: any): Project {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    vision: row.vision,
+    goal: row.goal,
+    status: row.status,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    color: row.color,
+    position: row.position,
+    developerId: row.developer_id,
+    teamId: row.team_id,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+function mapRowToNode(row: any): ProjectNode {
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    parentId: row.parent_id,
+    title: row.title,
+    description: row.description,
+    type: row.type,
+    status: row.status,
+    isMilestone: row.is_milestone === 1,
+    milestoneDate: row.milestone_date,
+    milestoneName: row.milestone_name,
+    startDate: row.start_date,
+    color: row.color,
+    estimatedDays: row.estimated_days,
+    positionX: row.position_x,
+    positionY: row.position_y,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
 }

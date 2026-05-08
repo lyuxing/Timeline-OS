@@ -3,6 +3,7 @@ import cors from 'cors'
 import { config } from 'dotenv'
 import projectRoutes from './routes/projects.js'
 import developerRoutes from './routes/developers.js'
+import authRoutes from './routes/auth.js'
 import { initDatabase } from './storage/database.js'
 
 config()
@@ -13,6 +14,7 @@ const PORT = process.env.PORT || 3001
 app.use(cors())
 app.use(express.json())
 
+app.use('/api/auth', authRoutes)
 app.use('/api/projects', projectRoutes)
 app.use('/api/developers', developerRoutes)
 

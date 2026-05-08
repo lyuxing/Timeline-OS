@@ -11,7 +11,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import { useStore } from '../store'
 import { STATUS_ICONS, ProjectStatus } from '../types'
-import { Trash2, Eye, Plus } from 'lucide-react'
+import { Trash2, Eye } from 'lucide-react'
 import { useMemo, useEffect, useState } from 'react'
 import './DevMap.css'
 
@@ -21,38 +21,11 @@ const MILESTONE_COLORS = [
 ]
 
 function DeveloperNode({ data }: { data: any }) {
-  const { createDeveloper } = useStore()
-
-  const handleAddDeveloper = async () => {
-    const name = prompt('输入开发者名称')
-    if (name) {
-      await createDeveloper(name)
-    }
-  }
-
   return (
     <div className="dev-node developer" style={{ borderColor: data.color }}>
       <Handle type="source" position={Position.Right} style={{ background: data.color }} />
       <div className="node-icon">{data.avatar || '👤'}</div>
       <div className="node-label">{data.name}</div>
-      {data.isAddButton && (
-        <button
-          onClick={handleAddDeveloper}
-          className="add-developer-btn"
-          title="添加开发者"
-        >
-          <Plus size={14} />
-        </button>
-      )}
-      {data.isDefault && (
-        <button
-          onClick={handleAddDeveloper}
-          className="add-developer-btn"
-          title="添加团队成员"
-        >
-          <Plus size={14} />
-        </button>
-      )}
     </div>
   )
 }
@@ -146,35 +119,21 @@ function buildDevMapNodes(developers: any[], projects: any[], projectTrees: Map<
         name: dev.name,
         avatar: dev.avatar,
         color: dev.color,
-        isDefault: dev.id === 'default-dev',
       },
       position: { x: 50, y: 100 + index * developerSpacing },
     })
   })
 
-  // 添加"添加开发者"按钮节点
-  nodes.push({
-    id: 'add-developer',
-    type: 'developer',
-    data: {
-      name: '添加',
-      avatar: '➕',
-      color: '#22c55e',
-      isAddButton: true,
-    },
-    position: { x: 50, y: 100 + developers.length * developerSpacing },
-  })
-
   // 项目节点
   projects.forEach((project) => {
-    const developerId = project.developer_id || 'default-dev'
+    const developerId = project.developer_id
     const developer = developers.find(d => d.id === developerId)
     const devIndex = developers.findIndex(d => d.id === developerId)
 
     if (!developer) return
 
     // 计算项目位置
-    const projectsOfDev = projects.filter(p => (p.developer_id || 'default-dev') === developerId)
+    const projectsOfDev = projects.filter(p => p.developer_id === developerId)
     const projIndex = projectsOfDev.findIndex(p => p.id === project.id)
 
     const projectX = 280 + projIndex * 180
@@ -204,7 +163,7 @@ function buildDevMapNodes(developers: any[], projects: any[], projectTrees: Map<
     const tree = projectTrees.get(project.id)
     if (tree && tree.nodes) {
       const milestones = tree.nodes
-        .filter((n: any) => n.is_milestone === 1)
+        .filter((n: any) => n.is_milestone === 1 || n.is_milestone === true)
         .sort((a: any, b: any) => new Date(a.milestone_date).getTime() - new Date(b.milestone_date).getTime())
 
       milestones.forEach((milestone: any, mIndex: number) => {
@@ -268,21 +227,31 @@ export default function DevMap() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [selectedDeveloperId, setSelectedDeveloperId] = useState('')
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
-    fetchProjects()
-    fetchDevelopers()
+    const loadData = async () => {
+      await fetchProjects()
+      await fetchDevelopers()
+      setLoaded(true)
+    }
+    loadData()
   }, [fetchProjects, fetchDevelopers])
 
+  // 确保所有项目的节点数据都已加载
   useEffect(() => {
-    if (projects.length > 0) {
-      projects.forEach(p => {
-        if (!p.nodes || p.nodes.length === 0) {
-          fetchProjectTree(p.id)
-        }
-      })
+    if (loaded && projects.length > 0) {
+      // 检查是否有项目缺少 nodes 数据
+      const needsFetch = projects.some(p => !p.nodes)
+      if (needsFetch) {
+        projects.forEach(p => {
+          if (!p.nodes) {
+            fetchProjectTree(p.id)
+          }
+        })
+      }
     }
-  }, [projects, fetchProjectTree])
+  }, [loaded, projects, fetchProjectTree])
 
   const projectTrees = useMemo(() => {
     const map = new Map<string, any>()
@@ -294,12 +263,21 @@ export default function DevMap() {
     return map
   }, [projects])
 
-  const { nodes: initialNodes, edges: initialEdges } = useMemo(
+  const { nodes: computedNodes, edges: computedEdges } = useMemo(
     () => buildDevMapNodes(developers, projects, projectTrees),
     [developers, projects, projectTrees]
   )
-  const [nodes, , onNodesChange] = useNodesState(initialNodes)
-  const [edges, , onEdgesChange] = useEdgesState(initialEdges)
+
+  const [nodes, setNodes, onNodesChange] = useNodesState([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState([])
+
+  // 当计算出的节点/边变化时，立即更新状态
+  useEffect(() => {
+    if (computedNodes.length > 0) {
+      setNodes(computedNodes)
+      setEdges(computedEdges)
+    }
+  }, [computedNodes, computedEdges, setNodes, setEdges])
 
   const handleCreateProject = async () => {
     if (!newProjectName.trim()) return

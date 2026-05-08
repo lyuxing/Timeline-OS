@@ -1,5 +1,5 @@
 export type ProjectStatus = 'seed' | 'rooting' | 'growing' | 'fruiting' | 'blooming' | 'archived'
-export type NodeType = 'seed' | 'branch' | 'fruit' | 'flower'
+export type NodeType = 'seed' | 'branch' | 'fruit' | 'flower' | 'task'
 export type NodeStatus = 'pending' | 'active' | 'done' | 'blocked'
 
 export interface Project {
@@ -55,6 +55,7 @@ export const NODE_TYPE_ICONS: Record<NodeType, string> = {
   branch: '🌿',
   fruit: '🍎',
   flower: '🌸',
+  task: '📍',
 }
 
 export const STATUS_COLORS: Record<ProjectStatus, string> = {

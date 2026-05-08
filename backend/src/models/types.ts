@@ -1,9 +1,43 @@
 export type ProjectStatus = 'seed' | 'rooting' | 'growing' | 'fruiting' | 'blooming' | 'archived'
-export type NodeType = 'seed' | 'branch' | 'fruit' | 'flower'
+export type NodeType = 'seed' | 'branch' | 'fruit' | 'flower' | 'task'
 export type NodeStatus = 'pending' | 'active' | 'done' | 'blocked'
+export type UserRole = 'admin' | 'member'
+
+export interface Team {
+  id: string
+  name: string
+  createdBy: string
+  createdAt: string
+}
+
+export interface User {
+  id: string
+  email: string
+  passwordHash: string
+  name: string
+  role: UserRole
+  teamId?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TeamInvitation {
+  id: string
+  email: string
+  teamId: string
+  teamName: string
+  role: UserRole
+  token: string
+  createdBy: string
+  expiresAt: string
+  createdAt: string
+  acceptedAt?: string
+}
 
 export interface Developer {
   id: string
+  userId?: string
+  teamId?: string
   name: string
   avatar?: string
   color: string
@@ -23,6 +57,7 @@ export interface Project {
   color: string
   position: number
   developerId?: string
+  teamId?: string
   createdAt: string
   updatedAt: string
 }
@@ -74,6 +109,7 @@ export const NODE_TYPE_ICONS: Record<NodeType, string> = {
   branch: '🌿',
   fruit: '🍎',
   flower: '🌸',
+  task: '📍',
 }
 
 export const STATUS_COLORS: Record<ProjectStatus, string> = {

@@ -34,8 +34,41 @@ function createTables() {
   const db = getDatabase()
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS teams (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      created_by TEXT NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      name TEXT NOT NULL,
+      role TEXT DEFAULT 'member',
+      team_id TEXT REFERENCES teams(id),
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS team_invitations (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL,
+      team_id TEXT NOT NULL REFERENCES teams(id),
+      team_name TEXT NOT NULL,
+      role TEXT DEFAULT 'member',
+      token TEXT UNIQUE NOT NULL,
+      created_by TEXT REFERENCES users(id),
+      expires_at TEXT NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      accepted_at TEXT
+    );
+
     CREATE TABLE IF NOT EXISTS developers (
       id TEXT PRIMARY KEY,
+      user_id TEXT REFERENCES users(id),
+      team_id TEXT REFERENCES teams(id),
       name TEXT NOT NULL,
       avatar TEXT,
       color TEXT DEFAULT '#3b82f6',
@@ -55,6 +88,7 @@ function createTables() {
       color TEXT DEFAULT '#3b82f6',
       position INTEGER DEFAULT 0,
       developer_id TEXT,
+      team_id TEXT REFERENCES teams(id),
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (developer_id) REFERENCES developers(id) ON DELETE SET NULL
@@ -85,50 +119,92 @@ function createTables() {
     CREATE INDEX IF NOT EXISTS idx_nodes_parent ON nodes(parent_id);
     CREATE INDEX IF NOT EXISTS idx_nodes_milestone ON nodes(is_milestone, milestone_date);
     CREATE INDEX IF NOT EXISTS idx_projects_developer ON projects(developer_id);
+    CREATE INDEX IF NOT EXISTS idx_projects_team ON projects(team_id);
+    CREATE INDEX IF NOT EXISTS idx_developers_team ON developers(team_id);
+    CREATE INDEX IF NOT EXISTS idx_users_team ON users(team_id);
   `)
 }
 
 function runMigrations() {
   const db = getDatabase()
 
-  // 添加 developer_id 列到 projects 表
+  // Add team_id to users if not exists
+  try { db.exec(`ALTER TABLE users ADD COLUMN team_id TEXT REFERENCES teams(id)`) } catch (e) {}
+
+  // Add team_id to developers if not exists
+  try { db.exec(`ALTER TABLE developers ADD COLUMN team_id TEXT REFERENCES teams(id)`) } catch (e) {}
+
+  // Add team_id to projects if not exists
+  try { db.exec(`ALTER TABLE projects ADD COLUMN team_id TEXT REFERENCES teams(id)`) } catch (e) {}
+
+  // Add developer_id to projects if not exists
+  try { db.exec(`ALTER TABLE projects ADD COLUMN developer_id TEXT`) } catch (e) {}
+
+  // Add start_date to nodes if not exists
+  try { db.exec(`ALTER TABLE nodes ADD COLUMN start_date TEXT`) } catch (e) {}
+
+  // Add vision to projects if not exists
+  try { db.exec(`ALTER TABLE projects ADD COLUMN vision TEXT`) } catch (e) {}
+
+  // Add goal to projects if not exists
+  try { db.exec(`ALTER TABLE projects ADD COLUMN goal TEXT`) } catch (e) {}
+
+  // Add end_date to projects if not exists
+  try { db.exec(`ALTER TABLE projects ADD COLUMN end_date TEXT`) } catch (e) {}
+
+  // Add color to nodes if not exists
+  try { db.exec(`ALTER TABLE nodes ADD COLUMN color TEXT`) } catch (e) {}
+
+  // Create team_invitations table if not exists
   try {
-    db.exec(`ALTER TABLE projects ADD COLUMN developer_id TEXT`)
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS team_invitations (
+        id TEXT PRIMARY KEY,
+        email TEXT NOT NULL,
+        team_id TEXT NOT NULL REFERENCES teams(id),
+        team_name TEXT NOT NULL,
+        role TEXT DEFAULT 'member',
+        token TEXT UNIQUE NOT NULL,
+        created_by TEXT REFERENCES users(id),
+        expires_at TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        accepted_at TEXT
+      )
+    `)
   } catch (e) {}
 
-  // 添加 start_date 列到 nodes 表
-  try {
-    db.exec(`ALTER TABLE nodes ADD COLUMN start_date TEXT`)
-  } catch (e) {}
+  // Create default users if not exists
+  const bcrypt = require('bcrypt')
+  const existingUsers = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number }
+  const now = new Date().toISOString()
+  const passwordHash = bcrypt.hashSync('123456', 10)
+  const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#22c55e', '#06b6d4']
 
-  // 添加 vision 列到 projects 表
-  try {
-    db.exec(`ALTER TABLE projects ADD COLUMN vision TEXT`)
-  } catch (e) {}
-
-  // 添加 goal 列到 projects 表
-  try {
-    db.exec(`ALTER TABLE projects ADD COLUMN goal TEXT`)
-  } catch (e) {}
-
-  // 添加 end_date 列到 projects 表
-  try {
-    db.exec(`ALTER TABLE projects ADD COLUMN end_date TEXT`)
-  } catch (e) {}
-
-  // 添加 color 列到 nodes 表
-  try {
-    db.exec(`ALTER TABLE nodes ADD COLUMN color TEXT`)
-  } catch (e) {}
-
-  // 创建默认开发者（如果不存在）
-  const existingDevelopers = db.prepare('SELECT COUNT(*) as count FROM developers').get() as { count: number }
-  if (existingDevelopers.count === 0) {
-    const now = new Date().toISOString()
+  if (existingUsers.count === 0) {
+    // Create admin user with corresponding developer
     db.prepare(`
-      INSERT INTO developers (id, name, color, created_at, updated_at)
-      VALUES ('default-dev', '开发者', '#3b82f6', ?, ?)
-    `).run(now, now)
-    console.log('👤 Created default developer')
+      INSERT INTO users (id, email, password_hash, name, role, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run('user-admin', 'admin@timeline.os', passwordHash, 'admin', 'admin', now, now)
+
+    // Create developer for admin user
+    db.prepare(`
+      INSERT INTO developers (id, user_id, name, color, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run('dev-admin', 'user-admin', 'admin', colors[0], now, now)
+
+    // Create test user with corresponding developer
+    db.prepare(`
+      INSERT INTO users (id, email, password_hash, name, role, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run('user-test', 'test@timeline.os', passwordHash, 'test', 'member', now, now)
+
+    // Create developer for test user
+    db.prepare(`
+      INSERT INTO developers (id, user_id, name, color, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run('dev-test', 'user-test', 'test', colors[1], now, now)
+
+    console.log('👥 Created default users: admin / 123456, test / 123456')
   }
 }

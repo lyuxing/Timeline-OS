@@ -4,8 +4,9 @@
   margin: 0 auto;
 }
 
+/* 第一栏：标题 */
 .weekly-summary-header {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .weekly-summary-header h1 {
@@ -18,37 +19,139 @@
   font-size: 14px;
 }
 
-.project-card {
+/* 第二栏：数字化统计 */
+.stats-bar {
+  padding: 20px;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  overflow: hidden;
-  cursor: pointer;
-  transition: box-shadow 0.2s, transform 0.2s;
-}
-
-.project-card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  transform: translateY(-2px);
-}
-
-.project-card-header {
-  padding: 16px 20px;
   display: flex;
-  align-items: center;
+  gap: 32px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.stat-item {
+  text-align: center;
+  min-width: 60px;
+}
+
+.stat-item.highlight {
+  background: #fffbeb;
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: 2px solid #f59e0b;
+}
+
+.stat-item .number {
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.stat-item .label {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+}
+
+/* 第三栏：本周要务详情 */
+.weekly-tasks-section {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.weekly-tasks-section h2 {
+  font-size: 18px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f59e0b;
+}
+
+.weekly-tasks-list {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 
-.project-card-header .project-name {
-  flex: 1;
-  font-weight: 600;
+.weekly-task-card {
+  padding: 16px;
+  background: #fffbeb;
+  border-radius: 8px;
+  border-left: 4px solid #f59e0b;
+}
+
+.weekly-task-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.weekly-task-number {
+  font-weight: 700;
+  color: #f59e0b;
   font-size: 16px;
+  min-width: 24px;
+}
+
+.weekly-task-project {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  background: #f0f0f0;
+  border-radius: 4px;
+}
+
+.weekly-task-title {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.weekly-task-desc {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+  padding-left: 24px;
+}
+
+.weekly-task-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 24px;
+}
+
+.weekly-task-date {
+  font-size: 12px;
+  color: #888;
+}
+
+.progress-mini {
+  width: 80px;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-mini-bar {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.progress-text {
+  font-size: 11px;
+  color: #666;
+  min-width: 32px;
 }
 
 .days-badge {
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 14px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
   font-weight: 600;
 }
 
@@ -67,54 +170,112 @@
   color: #22c55e;
 }
 
-.next-milestone {
-  padding: 12px 20px;
-  background: #fafafa;
+/* 项目详情部分 */
+.projects-section {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  padding: 20px;
 }
 
-.milestone-list {
-  padding: 12px 20px;
+.projects-section h2 {
+  font-size: 18px;
+  margin-bottom: 16px;
 }
 
-.milestone-list-title {
+.project-card-mini {
+  background: #f8fafc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.project-card-header {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.project-card-header:hover {
+  background: #f1f5f9;
+}
+
+.project-card-header .project-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.project-count {
   font-size: 12px;
   color: #888;
-  margin-bottom: 8px;
+  margin-left: 8px;
 }
 
-.milestone-item {
+.task-list-mini {
+  padding: 8px 16px 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.task-item-mini {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 0;
+  padding: 6px 12px;
+  background: #fff;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  font-size: 13px;
 }
 
-.milestone-item .date {
+.task-item-mini.this-week {
+  background: #fffbeb;
+  border-left: 3px solid #f59e0b;
+}
+
+.task-title-mini {
+  flex: 1;
+}
+
+.task-date-mini {
+  font-size: 11px;
   color: #888;
-  font-size: 12px;
-  margin-left: auto;
 }
 
-.stats-bar {
-  margin-top: 32px;
-  padding: 20px;
-  background: #f8fafc;
-  border-radius: 12px;
+.days-mini {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.days-mini.urgent {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.days-mini.soon {
+  background: #fffbeb;
+  color: #f59e0b;
+}
+
+.days-mini.normal {
+  background: #f0fdf4;
+  color: #22c55e;
+}
+
+.flowers-fruits-mini {
+  padding: 8px 16px;
   display: flex;
-  gap: 24px;
-  justify-content: center;
+  gap: 12px;
+  border-top: 1px solid #e5e7eb;
 }
 
-.stat-item {
-  text-align: center;
-}
-
-.stat-item .number {
-  font-size: 28px;
-  font-weight: 700;
-}
-
-.stat-item .label {
+.flower-tag {
   font-size: 12px;
-  color: #888;
+  color: #ec4899;
+}
+
+.fruit-tag {
+  font-size: 12px;
+  color: #22c55e;
 }
