@@ -11,10 +11,11 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import { useStore } from '../store'
 import { STATUS_ICONS, ProjectStatus } from '../types'
-import { Trash2, Eye, FileText, PlusCircle } from 'lucide-react'
+import { Trash2, Eye, FileText, PlusCircle, Download } from 'lucide-react'
 import { useMemo, useEffect, useState } from 'react'
 import './DevMap.css'
 import TemplateModal from './TemplateModal'
+import ImportExportModal from './ImportExportModal'
 
 const MILESTONE_COLORS = [
   '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4',
@@ -32,7 +33,7 @@ function DeveloperNode({ data }: { data: any }) {
 }
 
 function ProjectNode({ data }: { data: any }) {
-  const { selectProject, setViewMode, deleteProject, fetchProjectTree } = useStore()
+  const { selectProject, setViewMode, deleteProject, fetchProjectTree, token } = useStore()
 
   const handleView = () => {
     if (data.projectId) {
@@ -49,6 +50,30 @@ function ProjectNode({ data }: { data: any }) {
     }
   }
 
+  const handleExport = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!data.projectId) return
+
+    try {
+      const res = await fetch(`/api/export/projects/${data.projectId}/json`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+
+      if (!res.ok) throw new Error('Export failed')
+
+      const jsonData = await res.json()
+      const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${data.name}-export.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Export failed:', err)
+    }
+  }
+
   return (
     <div className="dev-node project">
       <Handle type="target" position={Position.Left} style={{ background: data.color }} />
@@ -57,6 +82,9 @@ function ProjectNode({ data }: { data: any }) {
       <div className="node-actions">
         <button onClick={handleView} title="查看时间线">
           <Eye size={14} />
+        </button>
+        <button onClick={handleExport} title="导出项目">
+          <Download size={14} />
         </button>
         <button onClick={handleDelete} title="删除项目" className="delete">
           <Trash2 size={14} />
@@ -227,6 +255,9 @@ export default function DevMap() {
   const { developers, projects, fetchProjects, fetchDevelopers, fetchProjectTree, createProject } = useStore()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showTemplateModal, setShowTemplateModal] = useState(false)
+  const [showImportExport, setShowImportExport] = useState(false)
+  const [exportProjectId, setExportProjectId] = useState<string | null>(null)
+  const [exportProjectName, setExportProjectName] = useState<string | null>(null)
   const [newProjectName, setNewProjectName] = useState('')
   const [selectedDeveloperId, setSelectedDeveloperId] = useState('')
   const [loaded, setLoaded] = useState(false)
@@ -303,6 +334,10 @@ export default function DevMap() {
         <h2>🗺️ 开发地图</h2>
         <p className="hint">双击开发者创建项目，点击项目查看时间线</p>
         <div className="header-actions">
+          <button onClick={() => setShowImportExport(true)} className="btn-import">
+            <Download size={16} />
+            导入/导出
+          </button>
           <button onClick={() => setShowTemplateModal(true)} className="btn-template">
             <FileText size={16} />
             从模板创建
@@ -367,6 +402,19 @@ export default function DevMap() {
       {/* 模板选择弹窗 */}
       {showTemplateModal && (
         <TemplateModal onClose={() => setShowTemplateModal(false)} />
+      )}
+
+      {/* 导入导出弹窗 */}
+      {showImportExport && (
+        <ImportExportModal
+          projectId={exportProjectId || undefined}
+          projectName={exportProjectName || undefined}
+          onClose={() => {
+            setShowImportExport(false)
+            setExportProjectId(null)
+            setExportProjectName(null)
+          }}
+        />
       )}
     </div>
   )

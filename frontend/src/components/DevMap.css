@@ -29,6 +29,23 @@
   gap: 10px;
 }
 
+.btn-import {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #22c55e;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btn-import:hover {
+  background: #16a34a;
+}
+
 .btn-template {
   display: flex;
   align-items: center;
