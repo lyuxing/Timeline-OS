@@ -21,20 +21,32 @@ const BRANCH_COLORS = [
   '#f97316', '#14b8a6', '#6366f1', '#84cc16', '#e11d48'
 ]
 
-// 地面节点 - 开发者
-function GroundNode({ data }: { data: any }) {
+// 主视角节点 - 当前用户（大）
+function MainGroundNode({ data }: { data: any }) {
   return (
-    <div className="ground-node">
+    <div className="main-ground-node" style={{ borderColor: data.color }}>
       <Handle type="source" position={Position.Top} id="toUp" style={{ background: '#22c55e' }} />
       <Handle type="source" position={Position.Bottom} id="toDown" style={{ background: '#8b5cf6' }} />
-      <div className="ground-avatar">{data.avatar || '👤'}</div>
-      <div className="ground-name">{data.name}</div>
-      <div className="ground-line" style={{ background: data.color }} />
+      <div className="main-avatar">{data.avatar || '👤'}</div>
+      <div className="main-name">{data.name}</div>
+      <div className="main-label">我的项目树</div>
     </div>
   )
 }
 
-// 向上生长的树干 - 正在进行的里程碑
+// 其他开发者节点（小）
+function OtherGroundNode({ data }: { data: any }) {
+  return (
+    <div className="other-ground-node" style={{ borderColor: data.color }}>
+      <Handle type="source" position={Position.Top} id="toUp" style={{ background: '#22c55e' }} />
+      <Handle type="source" position={Position.Bottom} id="toDown" style={{ background: '#8b5cf6' }} />
+      <div className="other-avatar">{data.avatar || '👤'}</div>
+      <div className="other-name">{data.name}</div>
+    </div>
+  )
+}
+
+// 里程碑节点
 function TrunkNode({ data }: { data: any }) {
   const color = data.color || '#f59e0b'
   const level = data.level || 0
@@ -58,81 +70,67 @@ function TrunkNode({ data }: { data: any }) {
   )
 }
 
-// 花节点 - 论文、竞赛等成果展示
+// 花节点
 function FlowerNode({ data }: { data: any }) {
   return (
     <div className="flower-node">
       <Handle type="target" position={Position.Bottom} style={{ background: '#ec4899' }} />
       <div className="flower-icon">🌸</div>
       <div className="flower-name">{data.name}</div>
-      <div className="flower-hint">{data.hint || '论文/竞赛'}</div>
     </div>
   )
 }
 
-// 果节点 - 产品、模式等产出
+// 果节点
 function FruitNode({ data }: { data: any }) {
   return (
     <div className="fruit-node">
       <Handle type="target" position={Position.Bottom} style={{ background: '#22c55e' }} />
       <div className="fruit-icon">🍎</div>
       <div className="fruit-name">{data.name}</div>
-      <div className="fruit-hint">{data.hint || '产品/成果'}</div>
     </div>
   )
 }
 
-// 树根节点 - 知识库（地下）
+// 树根节点（地下）
 function RootNode({ data }: { data: any }) {
   return (
     <div className="root-node">
       <Handle type="target" position={Position.Top} style={{ background: '#8b5cf6' }} />
-      <Handle type="source" position={Position.Bottom} id="toDeeper" style={{ background: '#6b21a8' }} />
       <div className="root-icon">{data.isArchive ? '📦' : '📚'}</div>
       <div className="root-name">{data.name}</div>
-      {data.itemCount !== undefined && (
-        <div className="root-count">{data.itemCount} 项</div>
-      )}
-    </div>
-  )
-}
-
-// 知识叶子节点（地下）
-function KnowledgeLeafNode({ data }: { data: any }) {
-  return (
-    <div className="knowledge-leaf">
-      <Handle type="target" position={Position.Top} style={{ background: '#6b21a8' }} />
-      <div className="leaf-icon">📄</div>
-      <div className="leaf-name">{data.name}</div>
     </div>
   )
 }
 
 const nodeTypes = {
-  ground: GroundNode,
+  mainGround: MainGroundNode,
+  otherGround: OtherGroundNode,
   trunk: TrunkNode,
   flower: FlowerNode,
   fruit: FruitNode,
   root: RootNode,
-  knowledgeLeaf: KnowledgeLeafNode,
 }
 
-// 构建开发者树（包含地上和地下）
+// 构建开发者树
 function buildDeveloperTree(
   developer: any,
   projects: any[],
   allProjectNodes: Map<string, any[]>,
-  offsetX: number
+  centerX: number,
+  isMain: boolean
 ): { nodes: Node[], edges: Edge[] } {
   const nodes: Node[] = []
   const edges: Edge[] = []
   const groundY = 400
 
-  // 地面节点 - 开发者
+  // 地面节点
+  const groundType = isMain ? 'mainGround' : 'otherGround'
+
   nodes.push({
     id: `ground-${developer.id}`,
-    type: 'ground',
-    position: { x: offsetX, y: groundY },
+    type: groundType,
+    position: { x: centerX, y: groundY },
     data: {
       id: developer.id,
       name: developer.name,
@@ -144,8 +142,8 @@ function buildDeveloperTree(
   // 该开发者的项目
   const devProjects = projects.filter(p => p.developer_id === developer.id)
 
-  // 向上：正在进行的项目的里程碑
-  const activeProjects = devProjects.filter(p => p.status !== 'archived' && p.status !== 'blooming')
+  // 活跃项目（向上）
+  const activeProjects = devProjects.filter(p => p.status !== 'archived')
   let branchIndex = 0
 
   activeProjects.forEach(project => {
@@ -155,13 +153,13 @@ function buildDeveloperTree(
       .sort((a: any, b: any) => new Date(a.milestone_date || 0).getTime() - new Date(b.milestone_date || 0).getTime())
 
     const projectColor = project.color || BRANCH_COLORS[branchIndex % BRANCH_COLORS.length]
+    const spacing = isMain ? 160 : 120
 
     topMilestones.forEach((milestone: any, mIdx: number) => {
-      const branchX = offsetX - 200 + branchIndex * 160
-      const branchY = groundY - 100 - mIdx * 80
+      const branchX = centerX - (activeProjects.length > 1 ? (activeProjects.length - 1) * spacing / 2 : 0) + branchIndex * spacing
+      const branchY = groundY - 120 - mIdx * 80
 
       const childNodes = projectNodes.filter((n: any) => n.parent_id === milestone.id)
-      const hasChildren = childNodes.length > 0
 
       nodes.push({
         id: milestone.id,
@@ -172,39 +170,36 @@ function buildDeveloperTree(
           dueDate: milestone.milestone_date ? new Date(milestone.milestone_date).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) : '',
           color: projectColor,
           level: 0,
-          hasChildren,
+          hasChildren: childNodes.length > 0,
           childCount: childNodes.length,
           projectId: project.id,
         },
       })
 
-      // 连接到地面
       edges.push({
-        id: `edge-ground-up-${milestone.id}`,
+        id: `edge-up-${milestone.id}`,
         source: `ground-${developer.id}`,
         sourceHandle: 'toUp',
         target: milestone.id,
         targetHandle: 'fromBelow',
-        style: { stroke: projectColor, strokeWidth: 3 },
+        style: { stroke: projectColor, strokeWidth: isMain ? 3 : 2 },
       })
 
-      // 子节点（花、果、子任务）
-      let leafOffset = -80
+      // 子节点
+      let leafOffset = -60
       childNodes.forEach((child: any) => {
-        const isMilestone = child.is_milestone === 1
-
-        if (isMilestone) {
+        if (child.is_milestone === 1) {
           // 子里程碑
-          const childY = branchY - 80
           nodes.push({
             id: child.id,
             type: 'trunk',
-            position: { x: branchX + leafOffset, y: childY },
+            position: { x: branchX + leafOffset, y: branchY - 80 },
             data: {
               name: child.milestone_name || child.title,
               dueDate: child.milestone_date ? new Date(child.milestone_date).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) : '',
               color: projectColor,
               level: 1,
+              projectId: project.id,
             },
           })
           edges.push({
@@ -219,16 +214,11 @@ function buildDeveloperTree(
           // 花或果
           const leafType = child.type === 'flower' ? 'flower' : child.type === 'fruit' ? 'fruit' : null
           if (leafType) {
-            const leafY = branchY - 60
-            const leafX = branchX + leafOffset
             nodes.push({
               id: child.id,
               type: leafType,
-              position: { x: leafX, y: leafY },
-              data: {
-                name: child.title,
-                hint: leafType === 'flower' ? '论文/竞赛' : '产品/成果',
-              },
+              position: { x: branchX + leafOffset, y: branchY - 60 },
+              data: { name: child.title },
             })
             edges.push({
               id: `edge-${milestone.id}-${child.id}`,
@@ -237,67 +227,41 @@ function buildDeveloperTree(
               target: child.id,
               targetHandle: 'Bottom',
               type: 'smoothstep',
-              style: { stroke: leafType === 'flower' ? '#ec4899' : '#22c55e', strokeWidth: 2 },
+              style: { stroke: leafType === 'flower' ? '#ec4899' : '#22c55e', strokeWidth: 1.5 },
             })
           }
         }
-        leafOffset += 80
+        leafOffset += 60
       })
 
       branchIndex++
     })
   })
 
-  // 向下：知识库和归档项目
+  // 归档项目（向下）
   const archivedProjects = devProjects.filter(p => p.status === 'archived')
-  const rootNodeY = groundY + 100
-
-  // 知识库根节点
-  const knowledgeId = `knowledge-${developer.id}`
-  nodes.push({
-    id: knowledgeId,
-    type: 'root',
-    position: { x: offsetX - 100, y: rootNodeY },
-    data: {
-      name: '知识库',
-      isArchive: false,
-      itemCount: 0,
-    },
-  })
-  edges.push({
-    id: `edge-ground-down-${knowledgeId}`,
-    source: `ground-${developer.id}`,
-    sourceHandle: 'toDown',
-    target: knowledgeId,
-    style: { stroke: '#8b5cf6', strokeWidth: 2, strokeDasharray: '5,5' },
-  })
-
-  // 归档项目作为根节点
   archivedProjects.forEach((project, idx) => {
-    const archiveY = rootNodeY + 80 + idx * 70
     nodes.push({
       id: `archive-${project.id}`,
       type: 'root',
-      position: { x: offsetX + 80, y: archiveY },
-      data: {
-        name: project.name,
-        isArchive: true,
-      },
+      position: { x: centerX + idx * 100 - 50, y: groundY + 100 },
+      data: { name: project.name, isArchive: true },
     })
     edges.push({
-      id: `edge-ground-archive-${project.id}`,
+      id: `edge-down-${project.id}`,
       source: `ground-${developer.id}`,
       sourceHandle: 'toDown',
       target: `archive-${project.id}`,
-      style: { stroke: '#6b21a8', strokeWidth: 2 },
+      style: { stroke: '#8b5cf6', strokeWidth: 1.5, strokeDasharray: '4,4' },
     })
   })
 
   return { nodes, edges }
 }
 
-// 构建整个森林
-function buildForest(
+// 构建整个项目树
+function buildProjectTree(
+  currentUser: any,
   developers: any[],
   projects: any[],
   allProjectNodes: Map<string, any[]>
@@ -305,11 +269,22 @@ function buildForest(
   let allNodes: Node[] = []
   let allEdges: Edge[] = []
 
-  const spacing = 500
-  const startX = 200
+  // 找到当前用户对应的开发者
+  const mainDeveloper = developers.find(d => d.userId === currentUser?.id)
 
-  developers.forEach((dev, index) => {
-    const tree = buildDeveloperTree(dev, projects, allProjectNodes, startX + index * spacing)
+  if (mainDeveloper) {
+    // 主视角（当前用户）
+    const tree = buildDeveloperTree(mainDeveloper, projects, allProjectNodes, 450, true)
+    allNodes = [...allNodes, ...tree.nodes]
+    allEdges = [...allEdges, ...tree.edges]
+  }
+
+  // 其他开发者（在右侧，缩小显示）
+  const otherDevelopers = developers.filter(d => d.userId !== currentUser?.id)
+  const offsetX = 900
+
+  otherDevelopers.forEach((dev, index) => {
+    const tree = buildDeveloperTree(dev, projects, allProjectNodes, offsetX + index * 400, false)
     allNodes = [...allNodes, ...tree.nodes]
     allEdges = [...allEdges, ...tree.edges]
   })
@@ -318,7 +293,7 @@ function buildForest(
 }
 
 export default function ProjectForest() {
-  const { projects, developers, fetchProjects, fetchDevelopers, fetchProjectTree, selectProject, setViewMode } = useStore()
+  const { user, projects, developers, fetchProjects, fetchDevelopers, fetchProjectTree, selectProject, setViewMode } = useStore()
   const [loaded, setLoaded] = useState(false)
   const [showTemplateModal, setShowTemplateModal] = useState(false)
   const [showImportExport, setShowImportExport] = useState(false)
@@ -358,8 +333,8 @@ export default function ProjectForest() {
 
   // 构建视图
   const treeData = useMemo(() => {
-    return buildForest(developers, projects, projectNodesMap)
-  }, [developers, projects, projectNodesMap])
+    return buildProjectTree(user, developers, projects, projectNodesMap)
+  }, [user, developers, projects, projectNodesMap])
 
   useEffect(() => {
     if (treeData.nodes.length > 0) {
@@ -384,11 +359,11 @@ export default function ProjectForest() {
     <div className="project-forest">
       <header className="forest-header">
         <div className="header-left">
-          <h2>🌲 项目森林</h2>
+          <h2>🌲 项目树</h2>
         </div>
 
         <p className="header-hint">
-          地面是开发者，向上是正在生长的项目🌳，向下是知识库与归档项目📚
+          地面是开发者，向上是正在生长的项目🌳，向下是归档项目📦
         </p>
 
         <div className="header-actions">
@@ -443,7 +418,6 @@ export default function ProjectForest() {
             <div className="legend-items">
               <span><span className="legend-icon">📚</span> 知识库</span>
               <span><span className="legend-icon">📦</span> 归档项目</span>
-              <span><span className="legend-icon">📄</span> 文档/笔记</span>
             </div>
           </div>
         </div>
