@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from './store'
-import DevMap from './components/DevMap'
+import ProjectForest from './components/ProjectForest'
 import FishboneTimeline from './components/FishboneTimeline'
 import WeeklySummary from './components/WeeklySummary'
 import TimelineOverview from './components/TimelineOverview'
@@ -9,7 +9,7 @@ import RegisterPage from './components/RegisterPage'
 import UserMenu from './components/UserMenu'
 import InviteModal from './components/InviteModal'
 import CreateTeamModal from './components/CreateTeamModal'
-import { Calendar, GitBranch, Map } from 'lucide-react'
+import { Calendar, GitBranch, TreeDeciduous } from 'lucide-react'
 import './App.css'
 
 export default function App() {
@@ -71,8 +71,8 @@ export default function App() {
             className={viewMode === 'map' ? 'active' : ''}
             onClick={() => setViewMode('map')}
           >
-            <Map size={18} />
-            开发地图
+            <TreeDeciduous size={18} />
+            项目树
           </button>
         </div>
 
@@ -86,7 +86,7 @@ export default function App() {
         {viewMode === 'weekly' && <WeeklySummary />}
         {viewMode === 'timeline' && <TimelineOverview />}
         {viewMode === 'timeline-edit' && selectedProjectId && <FishboneTimeline />}
-        {viewMode === 'map' && <DevMap />}
+        {viewMode === 'map' && <ProjectForest />}
       </main>
 
       {showInvite && <InviteModal onClose={() => setShowInvite(false)} />}
