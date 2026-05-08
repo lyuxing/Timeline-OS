@@ -4,6 +4,7 @@ import { config } from 'dotenv'
 import projectRoutes from './routes/projects.js'
 import developerRoutes from './routes/developers.js'
 import authRoutes from './routes/auth.js'
+import templateRoutes from './routes/templates.js'
 import { initDatabase } from './storage/database.js'
 
 config()
@@ -17,6 +18,7 @@ app.use(express.json())
 app.use('/api/auth', authRoutes)
 app.use('/api/projects', projectRoutes)
 app.use('/api/developers', developerRoutes)
+app.use('/api/templates', templateRoutes)
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })

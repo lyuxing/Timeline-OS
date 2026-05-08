@@ -11,9 +11,10 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import { useStore } from '../store'
 import { STATUS_ICONS, ProjectStatus } from '../types'
-import { Trash2, Eye } from 'lucide-react'
+import { Trash2, Eye, FileText, PlusCircle } from 'lucide-react'
 import { useMemo, useEffect, useState } from 'react'
 import './DevMap.css'
+import TemplateModal from './TemplateModal'
 
 const MILESTONE_COLORS = [
   '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4',
@@ -225,6 +226,7 @@ function buildDevMapNodes(developers: any[], projects: any[], projectTrees: Map<
 export default function DevMap() {
   const { developers, projects, fetchProjects, fetchDevelopers, fetchProjectTree, createProject } = useStore()
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showTemplateModal, setShowTemplateModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [selectedDeveloperId, setSelectedDeveloperId] = useState('')
   const [loaded, setLoaded] = useState(false)
@@ -300,9 +302,16 @@ export default function DevMap() {
       <div className="dev-map-header">
         <h2>🗺️ 开发地图</h2>
         <p className="hint">双击开发者创建项目，点击项目查看时间线</p>
-        <button onClick={() => setShowCreateModal(true)} className="btn-new-project">
-          + 新建项目
-        </button>
+        <div className="header-actions">
+          <button onClick={() => setShowTemplateModal(true)} className="btn-template">
+            <FileText size={16} />
+            从模板创建
+          </button>
+          <button onClick={() => setShowCreateModal(true)} className="btn-new-project">
+            <PlusCircle size={16} />
+            新建空白项目
+          </button>
+        </div>
       </div>
 
       <div className="dev-map-canvas">
@@ -353,6 +362,11 @@ export default function DevMap() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 模板选择弹窗 */}
+      {showTemplateModal && (
+        <TemplateModal onClose={() => setShowTemplateModal(false)} />
       )}
     </div>
   )

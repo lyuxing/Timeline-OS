@@ -7,6 +7,7 @@ export interface JwtPayload {
   userId: string
   email: string
   role: string
+  teamId?: string
 }
 
 export function generateToken(payload: JwtPayload): string {

@@ -115,6 +115,17 @@ function createTables() {
       FOREIGN KEY (parent_id) REFERENCES nodes(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS templates (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      category TEXT DEFAULT 'custom',
+      structure TEXT NOT NULL,
+      created_by TEXT REFERENCES users(id),
+      is_public INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE INDEX IF NOT EXISTS idx_nodes_project ON nodes(project_id);
     CREATE INDEX IF NOT EXISTS idx_nodes_parent ON nodes(parent_id);
     CREATE INDEX IF NOT EXISTS idx_nodes_milestone ON nodes(is_milestone, milestone_date);
@@ -122,6 +133,7 @@ function createTables() {
     CREATE INDEX IF NOT EXISTS idx_projects_team ON projects(team_id);
     CREATE INDEX IF NOT EXISTS idx_developers_team ON developers(team_id);
     CREATE INDEX IF NOT EXISTS idx_users_team ON users(team_id);
+    CREATE INDEX IF NOT EXISTS idx_templates_creator ON templates(created_by);
   `)
 }
 
