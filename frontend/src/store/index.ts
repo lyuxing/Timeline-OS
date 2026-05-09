@@ -12,6 +12,7 @@ interface User {
   role: 'admin' | 'member'
   teamId?: string
   team?: Team
+  developerId?: string
 }
 
 interface Developer {
@@ -109,6 +110,7 @@ export const useStore = create<AppState>((set, get) => ({
         return false
       }
       const data = await res.json()
+      console.log('Login response:', data)
       localStorage.setItem('token', data.token)
       set({
         user: { ...data.user, team: data.team },
@@ -291,13 +293,16 @@ export const useStore = create<AppState>((set, get) => ({
         headers: { Authorization: `Bearer ${token}` },
       })
       const data = await res.json()
+      console.log('Developers API response:', data)
       const developers = data.map((d: any) => ({
         id: d.id,
         name: d.name,
         avatar: d.avatar,
         color: d.color,
-        userId: d.userId,
+        userId: d.userId || d.user_id,
+        teamId: d.teamId || d.team_id,
       }))
+      console.log('Processed developers:', developers)
       set({ developers })
     } catch (e) {
       console.error('fetchDevelopers error:', e)
@@ -339,18 +344,21 @@ export const useStore = create<AppState>((set, get) => ({
         headers: { Authorization: `Bearer ${token}` },
       })
       const data = await res.json()
+      console.log('Projects API response:', data)
       const projects = data.map((p: any) => ({
         id: p.id,
         name: p.name,
         status: p.status,
         color: p.color,
-        start_date: p.start_date,
-        end_date: p.end_date,
+        start_date: p.start_date || p.startDate,
+        end_date: p.end_date || p.endDate,
         vision: p.vision,
         goal: p.goal,
         developer_id: p.developer_id || p.developerId,
+        team_id: p.team_id || p.teamId,
         nodes: [],
       }))
+      console.log('Processed projects:', projects)
       set({ projects })
     } catch (e) {
       console.error('fetchProjects error:', e)

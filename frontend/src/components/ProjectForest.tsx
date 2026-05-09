@@ -269,8 +269,15 @@ function buildProjectTree(
   let allNodes: Node[] = []
   let allEdges: Edge[] = []
 
+  console.log('Building project tree:', {
+    currentUser: currentUser?.id,
+    developers: developers.map(d => ({ id: d.id, name: d.name, userId: d.userId })),
+    projects: projects.map(p => ({ id: p.id, name: p.name, developer_id: p.developer_id })),
+  })
+
   // 找到当前用户对应的开发者
   const mainDeveloper = developers.find(d => d.userId === currentUser?.id)
+  console.log('Main developer:', mainDeveloper)
 
   if (mainDeveloper) {
     // 主视角（当前用户）
@@ -281,10 +288,10 @@ function buildProjectTree(
 
   // 其他开发者（在右侧，缩小显示）
   const otherDevelopers = developers.filter(d => d.userId !== currentUser?.id)
-  const offsetX = 900
+  const offsetX = 950
 
   otherDevelopers.forEach((dev, index) => {
-    const tree = buildDeveloperTree(dev, projects, allProjectNodes, offsetX + index * 400, false)
+    const tree = buildDeveloperTree(dev, projects, allProjectNodes, offsetX + index * 350, false)
     allNodes = [...allNodes, ...tree.nodes]
     allEdges = [...allEdges, ...tree.edges]
   })
